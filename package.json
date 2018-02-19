@@ -1,0 +1,33 @@
+{
+  "name": "md5-js",
+  "version": "1.0.0",
+  "description": "md5 in javascript",
+  "main": "index.js",
+  "bin": {
+    "sha256": "./cli.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeffallen6767/md5-js.git"
+  },
+  "keywords": [
+    "md5"
+  ],
+  "author": "jeffallen6767",
+  "license": "",
+  "bugs": {
+    "url": "https://github.com/jeffallen6767/md5-js/issues"
+  },
+  "homepage": "https://github.com/jeffallen6767/md5-js#readme",
+  "devDependencies": {
+    "testing": "https://github.com/jeffallen6767/testing.git"
+  },
+  "dependencies": {
+    "colors": "^1.1.2",
+    "commander": "^2.11.0",
+    "utf8": "^2.1.2"
+  }
+}
