@@ -59,7 +59,9 @@ for (var i=0; i<64; i++) {
 
 var 
   BYTE_SIZE = 8,
+  ENDIAN_SIZE_CONVERT = [14,15,12,13,10,11,8,9,6,7,4,5,2,3,0,1],
   zeroBits4bytes = "00000000",
+  zeroBits8bytes = "0000000000000000",
   // Use binary integer part of the sines of integers (Radians) as constants:
   k = [
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -86,10 +88,14 @@ function toHex(uInt32) {
 }
 
 function leftRotate(x, c) {
-  return (x << c) | (x >> (32-c));
+  return ((x << c) | (x >> (32-c))) >>> 0;
 }
 
-var zeroBits8bytes = "0000000000000000";
+/*
+for (var zz=0; zz<32; zz++) {
+  console.log(zz, leftRotate(1, zz));
+}
+*/
 
 function md5(input, next) {
 
@@ -167,8 +173,13 @@ function md5(input, next) {
   
   var hexSize = zeroBits8bytes.substr(sizeBytes.length) + sizeBytes;
   //console.log("hexSize", hexSize);
-  
-  var arrHexSize = hexSize.split("");
+  // 0000 0000 0000 0028 <-- is big endian
+  // 2800 0000 0000 0000 <-- convert to little endian:
+  var arrHexSize = hexSize.split("").map(function(val, index, arrHex) {
+    return arrHex[
+      ENDIAN_SIZE_CONVERT[index]
+    ];
+  });
   while (arrHexSize.length > 0) {
     var aByte = arrHexSize.shift() + arrHexSize.shift();
     buffer[x++] = parseInt(aByte, 16);
@@ -184,6 +195,7 @@ function md5(input, next) {
     
     // break chunk into sixteen 32-bit words w[z], 0 ≤ z ≤ 15
     w = new Array(BLOCK_SIZE_BYTES);
+    console.log("Block", x, "contains:");
     for (z=0; z<16; z++) {
       u = z * WORD_SIZE_BYTES;
       v = x + u;
@@ -194,12 +206,12 @@ function md5(input, next) {
       
       for (y = 0; y < 4; y++) {
         e = v + y;
-        console.log("v", v, "y", y, String.fromCharCode(buffer[e]), buffer[e], "0x" + toHex(buffer[e]).slice(-2));
+        //console.log("v", v, "y", y, String.fromCharCode(buffer[e]), buffer[e], "0x" + toHex(buffer[e]).slice(-2));
       }
-      console.log("z", z, "u", u, "v", v, "w["+z+"]", w[z], "0x" + toHex(w[z]));
-      console.log(" ");
-      
+      //console.log("z", z, "u", u, "v", v, "w["+z+"]", w[z], "0x" + toHex(w[z]));
+      console.log("[" + z + "]", w[z], "0x" + toHex(w[z]));
     }
+    console.log(" ");
     
     //Initialize hash value for this chunk:
     a = a0;
@@ -207,8 +219,12 @@ function md5(input, next) {
     c = c0;
     d = d0;
     
+    console.log("words", "A=" + a, "B=" + b, "C=" + c, "D=" + d);
+    console.log(" ");
+    
     // Main loop:
     for (i=0; i<64; i++) {
+      
       if (i < 16) {
         f = (b & c) | ((~b) & d);
         g = i;
@@ -222,13 +238,37 @@ function md5(input, next) {
         f = c ^ (b | (~d));
         g = (7 * i) % 16;
       }
+      
       // Be wary of the below definitions of a,b,c,d
       f = (f + a + k[i] + w[g]) >>> 0;
+      
+      a = (b + leftRotate(f, s[i])) >>> 0;
+      
+      switch (i % 4) {
+        case 0:
+          console.log("[" + i + "]", "A=" + a, "B=" + b, "C=" + c, "D=" + d);
+          break;
+        case 1:
+          console.log("[" + i + "]", "A=" + b, "B=" + c, "C=" + d, "D=" + a);
+          break;
+        case 2:
+          console.log("[" + i + "]", "A=" + c, "B=" + d, "C=" + a, "D=" + b);
+          break;
+        case 3:
+          console.log("[" + i + "]", "A=" + d, "B=" + a, "C=" + b, "D=" + c);
+          break;
+      }
+      
+      e = a;
       a = d;
       d = c;
       c = b;
-      b = (b + leftRotate(f, s[i])) >>> 0;
+      //b = (b + leftRotate(f, s[i])) >>> 0;
+      b = e;
+      
+      
     }
+    
     
     // Add this chunk's hash to result so far:
     a0 = (a0 + a) >>> 0;
@@ -258,5 +298,6 @@ function md5(input, next) {
 }
 
 // 822bb19d9d5a0b1346477f6c2b18e1fe === 5d41402abc4b2a76b9719d911017c592
+// c5f20bce4e79acd3f767c2656edf3bc7 === 5d41402abc4b2a76b9719d911017c592
 
 module.exports = md5;
