@@ -177,27 +177,17 @@ function md5(input, next) {
       b += leftRotate(wordValue, PER_ROUND_SHIFTS[y]);
     }
     
-    // Add this chunk's hash to result so far:
-    a0 += a;
-    b0 += b;
-    c0 += c;
-    d0 += d;
+    // Add (modulo 2^32) this chunk's hash to result so far:
+    a0 = (a0 + a) >>> 0;
+    b0 = (b0 + b) >>> 0;
+    c0 = (c0 + c) >>> 0;
+    d0 = (d0 + d) >>> 0;
   }
   
-  // Produce the final hash value of unsigned int32's
-  digest = [
-    a0 >>> 0,
-    b0 >>> 0,
-    c0 >>> 0,
-    d0 >>> 0
-  ];
-  
-  // convert to 4 hex values
-  hash = digest.map(toHex);
-
-  // convert hex values to little-endian output:
+  // Produce the final hash value of unsigned int32's in hex
+  // then convert hex values to little-endian output:
   // 2a40415d becomes: 5d41402a
-  output = hash.reduce(function(acc, val, idx) {
+  output = [a0, b0, c0, d0].map(toHex).reduce(function(acc, val, idx) {
     // split into 2 char chunks:
     var bytes = val.match(/.{1,2}/g);
     // push them in reverse order:
