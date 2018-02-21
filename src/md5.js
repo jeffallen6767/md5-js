@@ -105,8 +105,8 @@ function md5(input, next) {
     // temp vars
     y,z,
     
-    // final value calculations
-    digest, hash, output;
+    // final value
+    output;
 
   // add message
   if (!isbuffer) {
