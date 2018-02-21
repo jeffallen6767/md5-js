@@ -1,7 +1,10 @@
 
 var 
   md5 = require("./index"),
-  tester = require("testing"),
+  tester = require("testing").config({
+    "pass.color": "white",
+    "fail.color": "white"
+  }),
 	fs = require('fs'),
   utf8 = require('utf8'),
   FORMAT_MAX_MSG_LEN = 40,

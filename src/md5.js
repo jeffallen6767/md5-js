@@ -59,9 +59,11 @@ for (var i=0; i<64; i++) {
 
 var 
   BYTE_SIZE = 8,
+  U_INT_32_SIZE = 32,
   ENDIAN_SIZE_CONVERT = [14,15,12,13,10,11,8,9,6,7,4,5,2,3,0,1],
   zeroBits4bytes = "00000000",
   zeroBits8bytes = "0000000000000000",
+  zeroBits16bytes = "00000000000000000000000000000000",
   // Use binary integer part of the sines of integers (Radians) as constants:
   k = [
     0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
@@ -82,15 +84,52 @@ var
   ];
 
 function toHex(uInt32) {
-  var hex = uInt32.toString(16),
+  var 
+    hex = uInt32.toString(16),
     len = hex.length;
   return len < BYTE_SIZE ? zeroBits4bytes.substr(len) + hex : hex;
 }
 
-function leftRotate(x, c) {
-  return ((x << c) | (x >> (32-c))) >>> 0;
+function toBin(uInt32) {
+  var 
+    bin = uInt32.toString(2),
+    len = bin.length;
+  return len < U_INT_32_SIZE ? zeroBits16bytes.substr(len) + bin : bin;
 }
 
+function bin2uInt32(bits) {
+  return parseInt(bits, 2) >>> 0;
+}
+
+function leftRotate(x, c) {
+  return (x << c) | (x >>> (32-c));
+}
+/*
+function _leftRotate(x, c) {
+  console.log("leftRotate", x, c);
+  var 
+    first = (x << c) >>> 0,
+    second = (x >>> (32-c)) >>> 0,
+    result = (first | second) >>> 0,
+    bits = toBin(x).split(''), 
+    bit, tmp;
+  console.log(" first", toBin(first), first);
+  console.log("second", toBin(second), second);
+  while (c > 0) {
+    tmp = c + " = " + bits.join('') + " [" + bin2uInt32(bits.join('')) + "]";
+    bit = bits.shift();
+    bits.push(bit);
+    console.log(tmp + " --> " + bits.join('') + " [" + bin2uInt32(bits.join('')) + "]");
+    --c;
+  }
+  tmp = bin2uInt32(bits.join(''));
+  
+  console.log("result", toBin(result) + "[" + result + "]");
+  console.log("  bits", bits.join('') + "[" + bin2uInt32(bits.join('')) + "]");
+  console.log(" ");
+  return result;
+}
+*/
 /*
 for (var zz=0; zz<32; zz++) {
   console.log(zz, leftRotate(1, zz));
@@ -199,16 +238,7 @@ function md5(input, next) {
     for (z=0; z<16; z++) {
       u = z * WORD_SIZE_BYTES;
       v = x + u;
-      // big endian
-      //w[z] = buffer[v] * BYTE_MULT_32_1 + buffer[v+1] * BYTE_MULT_32_2 + buffer[v+2] * BYTE_MULT_32_3 + buffer[v+3];
-      // little endian
       w[z] = buffer[v+3] * BYTE_MULT_32_1 + buffer[v+2] * BYTE_MULT_32_2 + buffer[v+1] * BYTE_MULT_32_3 + buffer[v];
-      
-      for (y = 0; y < 4; y++) {
-        e = v + y;
-        //console.log("v", v, "y", y, String.fromCharCode(buffer[e]), buffer[e], "0x" + toHex(buffer[e]).slice(-2));
-      }
-      //console.log("z", z, "u", u, "v", v, "w["+z+"]", w[z], "0x" + toHex(w[z]));
       console.log("[" + z + "]", w[z], "0x" + toHex(w[z]));
     }
     console.log(" ");
@@ -221,12 +251,20 @@ function md5(input, next) {
     
     console.log("words", "A=" + a, "B=" + b, "C=" + c, "D=" + d);
     console.log(" ");
+    // 3679623032 <-    my D @ 2
+    //  286529400 <- their D @ 2
+    // 2147483648 <-- max
     
     // Main loop:
     for (i=0; i<64; i++) {
-      
+      //if (i>1) break;
       if (i < 16) {
-        f = (b & c) | ((~b) & d);
+        //console.log("B", toBin(b), toHex(b), b);
+        //console.log("C", toBin(c), toHex(c), c);
+        //console.log("D", toBin(d), toHex(d), d);
+        //console.log("f = (",toBin(b)," & ",toBin(c),") | ((~",toBin(b),") & ",toBin(d),");");
+        f = ((b & c) | ((~b) & d)) >>> 0;
+        //console.log("F", toBin(f), toHex(f), f);
         g = i;
       } else if (i < 32) {
         f = (d & b) | ((~d) & c);
@@ -259,22 +297,21 @@ function md5(input, next) {
           break;
       }
       
+      // twist
       e = a;
       a = d;
       d = c;
       c = b;
-      //b = (b + leftRotate(f, s[i])) >>> 0;
       b = e;
-      
-      
     }
-    
     
     // Add this chunk's hash to result so far:
     a0 = (a0 + a) >>> 0;
     b0 = (b0 + b) >>> 0;
     c0 = (c0 + c) >>> 0;
     d0 = (d0 + d) >>> 0;
+    
+    console.log("block=" + x + " processed:", "A=" + a0, "B=" + b0, "C=" + c0, "D=" + d0);
   }
   /*
   Produce the final hash value (big-endian):
@@ -290,7 +327,18 @@ function md5(input, next) {
   
   var hash = digest.map(toHex);
   
-  var output = hash.join("");
+  console.log("final values", hash);
+  
+  var output = hash.reduce(function(acc, val, idx) {
+    console.log(acc, val, idx);
+    var bytes = val.match(/.{1,2}/g);
+    while (bytes.length) {
+      acc.push(
+        bytes.pop()
+      );
+    }
+    return acc;
+  }, []).join('');
   
   //console.log(typeof next);
   
