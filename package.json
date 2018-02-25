@@ -4,7 +4,7 @@
   "description": "md5 in javascript",
   "main": "index.js",
   "bin": {
-    "sha256": "./cli.js"
+    "md5": "./cli.js"
   },
   "scripts": {
     "test": "node test.js"
@@ -17,7 +17,7 @@
     "md5"
   ],
   "author": "jeffallen6767",
-  "license": "",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/jeffallen6767/md5-js/issues"
   },
